@@ -31,7 +31,7 @@ def message(*args):
     print(*args, file=sys.stderr)
 
 
-def download_dist(wait=False):
+def download_dist(tarname, wait=False):
     '''Download dists tarball for current git SHA from GitHub
 
     These are produced by .github/workflows/build-dist.yml for every PR and push.
@@ -107,7 +107,9 @@ def download_dist(wait=False):
             message("download-dist: expected tar with exactly one tar.gz member")
             return None
         ftar.extract(names[0])
-        tar_path = os.path.realpath(names[0])
+        if tarname:
+            os.rename(names[0], tarname)
+        tar_path = os.path.realpath(tarname or names[0])
 
     # Extract some files locally for speeding up the build and allowing integration tests to run
     unpack_paths = [d for d in ["dist", "package-lock.json"] if not os.path.exists(d)]
@@ -124,8 +126,9 @@ def download_dist(wait=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Download release tarball")
     parser.add_argument('-w', '--wait', action='store_true', help="Wait for up to 20 minutes for download tarball")
+    parser.add_argument('-t', '--tarname', help="Name of the extracted tar.gz")
     args = parser.parse_args()
-    dist = download_dist(args.wait)
+    dist = download_dist(args.tarname, args.wait)
     if not dist:
         sys.exit(1)
     print(dist)
