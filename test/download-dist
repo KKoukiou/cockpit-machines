@@ -56,7 +56,7 @@ def download_dist(tarname, wait=False):
         message("download-dist: already downloaded", dists[0])
         return os.path.abspath(dists[0])
 
-    download_url = f"https://github.com/{ os.getenv('GITHUB_BASE', 'cockpit-project/cockpit-machines') }-dist/raw/main/{sha}.tar"
+    download_url = f"https://github.com/{ os.getenv('GITHUB_BASE', 'KKoukiou/cockpit-machines') }-dist/raw/main/{sha}.tar"
     request = urllib.request.Request(download_url)
     tario = io.BytesIO()
     retries = 50 if wait else 1  # 25 minutes, once every 30s
