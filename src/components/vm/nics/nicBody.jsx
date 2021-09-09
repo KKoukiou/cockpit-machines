@@ -97,6 +97,7 @@ export const NetworkTypeAndSourceRow = ({ idPrefix, onValueChanged, dialogValues
             {
                 name: 'direct',
                 desc: 'Direct attachment',
+                detailHeadline: _("This is the recommended config for high performance or enhanced security. In the default 'vepa' mode, a guest virtual machine's packets are always sent via the physical interface. Communication between guest virtual machines, or between a guest virtual machine and the host is not possible unless the physical interface is connected to a VEPA-capable network switch. Other modes are available; consult the libvirt documentation for further information."),
                 detailParagraph: _("Uses the macvtap driver to attach the guest's NIC directly to a specified physical interface of the host machine.")
             },
         ];
