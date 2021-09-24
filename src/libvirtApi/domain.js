@@ -39,7 +39,6 @@ import {
     updateVm,
 } from '../actions/store-actions.js';
 import {
-    getDiskXML,
     getMemoryBackingXML,
 } from '../libvirt-xml-create.js';
 import {
@@ -97,17 +96,6 @@ function buildConsoleVVFile(consoleDetail) {
         'fullscreen=0\n';
 }
 
-function domainAttachDevice({ connectionName, vmId, permanent, hotplug, xmlDesc }) {
-    let flags = Enum.VIR_DOMAIN_AFFECT_CURRENT;
-    if (hotplug)
-        flags |= Enum.VIR_DOMAIN_AFFECT_LIVE;
-    if (permanent)
-        flags |= Enum.VIR_DOMAIN_AFFECT_CONFIG;
-
-    // Error handling is done from the calling side
-    return call(connectionName, vmId, 'org.libvirt.Domain', 'AttachDevice', [xmlDesc, flags], { timeout, type: 'su' });
-}
-
 export function getPythonPath() {
     return cockpit.spawn(["/bin/sh", "-c", "which /usr/libexec/platform-python 2>/dev/null || which python3 2>/dev/null || which python"]).then(pyexe => { pythonPath = pyexe.trim() });
 }
@@ -121,7 +109,6 @@ export function domainAttachDisk({
     volumeName,
     format,
     target,
-    vmId,
     vmName,
     permanent,
     hotplug,
@@ -129,9 +116,35 @@ export function domainAttachDisk({
     shareable,
     busType,
 }) {
-    const xmlDesc = getDiskXML(type, file, device, poolName, volumeName, format, target, cacheMode, shareable, busType);
+    const options = { err: "message" };
+    if (connectionName === "system")
+        options.superuser = "try";
 
-    return domainAttachDevice({ connectionName, vmId, permanent, hotplug, xmlDesc });
+    let source = "";
+    if (type === 'file')
+        source = `,source.file=${file}`;
+    else
+        source = `,source.pool=${poolName},source.volume=${volumeName}`;
+
+    let driverType = "";
+    if (format && ['qcow2', 'raw'].includes(format))
+        driverType = `,driver.type=${format}`;
+
+    const shareableOption = shareable ? "yes" : "no";
+
+    const args = [
+        "virt-xml", "-c", `qemu:///${connectionName}`,
+        vmName, "--add-device", "--disk",
+        `type=${type},shareable=${shareableOption},target.bus=${busType},target.dev=${target},driver.name=qemu,cache=${cacheMode},device=${device}${source}${driverType}`
+    ];
+
+    if (hotplug) {
+        args.push("--update");
+        if (!permanent)
+            args.push("--no-define");
+    }
+
+    return cockpit.spawn(args, options);
 }
 
 export function domainAttachHostDevice({ connectionName, vmName, live, dev }) {
