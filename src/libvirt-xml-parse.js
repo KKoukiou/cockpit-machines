@@ -795,13 +795,21 @@ function parseNetDumpxmlForIp(ipElems) {
     return ip;
 }
 
+function getNodeValue(elem, tag) {
+    if (elem.getElementsByTagName(tag).length == 0 || elem.getElementsByTagName(tag)[0].childNodes.length == 0) {
+        return undefined;
+    }
+
+    return elem.getElementsByTagName(tag)[0].childNodes[0].nodeValue;
+}
+
 export function parseNodeDeviceDumpxml(nodeDevice) {
     const deviceElem = getElem(nodeDevice);
     if (!deviceElem) {
         return;
     }
 
-    const name = deviceElem.getElementsByTagName("name")[0].childNodes[0].nodeValue;
+    const name = getNodeValue(deviceElem, "name");
     const pathElem = getSingleOptionalElem(deviceElem, 'path');
     const path = pathElem ? pathElem.childNodes[0].nodeValue : undefined;
     const parentElem = getSingleOptionalElem(deviceElem, 'parent');
@@ -810,76 +818,78 @@ export function parseNodeDeviceDumpxml(nodeDevice) {
 
     const capability = {};
 
-    capability.type = capabilityElem.getAttribute("type");
-    if (capability.type == 'net')
-        capability.interface = capabilityElem.getElementsByTagName("interface")[0].childNodes[0].nodeValue;
-    else if (capability.type == 'storage')
-        capability.block = capabilityElem.getElementsByTagName("block")[0].childNodes[0].nodeValue;
-    else if (capability.type == 'misc')
-        capability.char = capabilityElem.getElementsByTagName("char")[0].childNodes[0].nodeValue;
-    else if (capability.type == 'usb_device' || capability.type == 'pci') {
-        capability.product = {};
-        capability.vendor = {};
+    if (capabilityElem) {
+        capability.type = capabilityElem.getAttribute("type");
+        if (capability.type == 'net')
+            capability.interface = getNodeValue(capabilityElem, "interface");
+        else if (capability.type == 'storage')
+            capability.block = getNodeValue(capabilityElem, "block");
+        else if (capability.type == 'misc')
+            capability.char = getNodeValue(capabilityElem, "char");
+        else if (capability.type == 'usb_device' || capability.type == 'pci') {
+            capability.product = {};
+            capability.vendor = {};
 
-        const productElem = capabilityElem.getElementsByTagName("product")[0];
-        const vendorElem = capabilityElem.getElementsByTagName("vendor")[0];
-        if (productElem) {
-            capability.product.id = productElem.getAttribute("id");
-            capability.product._value = productElem.childNodes[0] ? productElem.childNodes[0].nodeValue : undefined;
-        }
-        if (vendorElem) {
-            capability.vendor.id = vendorElem.getAttribute("id");
-            capability.vendor._value = vendorElem.childNodes[0] ? vendorElem.childNodes[0].nodeValue : undefined;
-        }
+            const productElem = capabilityElem.getElementsByTagName("product")[0];
+            const vendorElem = capabilityElem.getElementsByTagName("vendor")[0];
+            if (productElem) {
+                capability.product.id = productElem.getAttribute("id");
+                capability.product._value = productElem.childNodes[0] ? productElem.childNodes[0].nodeValue : undefined;
+            }
+            if (vendorElem) {
+                capability.vendor.id = vendorElem.getAttribute("id");
+                capability.vendor._value = vendorElem.childNodes[0] ? vendorElem.childNodes[0].nodeValue : undefined;
+            }
 
-        if (capability.type == "pci") {
-            const domainElem = capabilityElem.getElementsByTagName("domain")[0];
+            if (capability.type == "pci") {
+                const domainElem = capabilityElem.getElementsByTagName("domain")[0];
+                const busElem = capabilityElem.getElementsByTagName("bus")[0];
+                const functionElem = capabilityElem.getElementsByTagName("function")[0];
+                const slotElem = capabilityElem.getElementsByTagName("slot")[0];
+
+                capability.domain = domainElem.childNodes[0] ? domainElem.childNodes[0].nodeValue : undefined;
+                capability.bus = busElem.childNodes[0] ? busElem.childNodes[0].nodeValue : undefined;
+                capability.function = functionElem.childNodes[0] ? functionElem.childNodes[0].nodeValue : undefined;
+                capability.slot = slotElem.childNodes[0] ? slotElem.childNodes[0].nodeValue : undefined;
+            } else if (capability.type == "usb_device") {
+                const deviceElem = capabilityElem.getElementsByTagName("device")[0];
+                const busElem = capabilityElem.getElementsByTagName("bus")[0];
+
+                capability.device = deviceElem.childNodes[0] ? deviceElem.childNodes[0].nodeValue : undefined;
+                capability.bus = busElem.childNodes[0] ? busElem.childNodes[0].nodeValue : undefined;
+            }
+        } else if (capability.type == 'scsi') {
+            capability.bus = {};
+            capability.lun = {};
+            capability.target = {};
+
             const busElem = capabilityElem.getElementsByTagName("bus")[0];
-            const functionElem = capabilityElem.getElementsByTagName("function")[0];
-            const slotElem = capabilityElem.getElementsByTagName("slot")[0];
+            const lunElem = capabilityElem.getElementsByTagName("lun")[0];
+            const targetElem = capabilityElem.getElementsByTagName("target")[0];
 
-            capability.domain = domainElem.childNodes[0] ? domainElem.childNodes[0].nodeValue : undefined;
-            capability.bus = busElem.childNodes[0] ? busElem.childNodes[0].nodeValue : undefined;
-            capability.function = functionElem.childNodes[0] ? functionElem.childNodes[0].nodeValue : undefined;
-            capability.slot = slotElem.childNodes[0] ? slotElem.childNodes[0].nodeValue : undefined;
-        } else if (capability.type == "usb_device") {
-            const deviceElem = capabilityElem.getElementsByTagName("device")[0];
-            const busElem = capabilityElem.getElementsByTagName("bus")[0];
+            if (busElem)
+                capability.bus._value = busElem.childNodes[0] ? busElem.childNodes[0].nodeValue : undefined;
+            if (lunElem)
+                capability.lun._value = lunElem.childNodes[0] ? lunElem.childNodes[0].nodeValue : undefined;
+            if (targetElem)
+                capability.target._value = targetElem.childNodes[0] ? targetElem.childNodes[0].nodeValue : undefined;
+        } else if (capability.type == 'scsi_host') {
+            capability.host = {};
+            capability.uniqueId = {};
 
-            capability.device = deviceElem.childNodes[0] ? deviceElem.childNodes[0].nodeValue : undefined;
-            capability.bus = busElem.childNodes[0] ? busElem.childNodes[0].nodeValue : undefined;
+            const hostElem = capabilityElem.getElementsByTagName("host")[0];
+            const unique_idElem = capabilityElem.getElementsByTagName("unique_id")[0];
+
+            if (hostElem)
+                capability.host._value = hostElem.childNodes[0] ? hostElem.childNodes[0].nodeValue : undefined;
+            if (unique_idElem)
+                capability.uniqueId._value = unique_idElem.childNodes[0] ? unique_idElem.childNodes[0].nodeValue : undefined;
+        } else if (capability.type == 'mdev') {
+            const uuidElem = capabilityElem.getElementsByTagName("uuid")[0];
+
+            if (uuidElem)
+                capability.uuid = uuidElem.childNodes[0] ? uuidElem.childNodes[0].nodeValue : undefined;
         }
-    } else if (capability.type == 'scsi') {
-        capability.bus = {};
-        capability.lun = {};
-        capability.target = {};
-
-        const busElem = capabilityElem.getElementsByTagName("bus")[0];
-        const lunElem = capabilityElem.getElementsByTagName("lun")[0];
-        const targetElem = capabilityElem.getElementsByTagName("target")[0];
-
-        if (busElem)
-            capability.bus._value = busElem.childNodes[0] ? busElem.childNodes[0].nodeValue : undefined;
-        if (lunElem)
-            capability.lun._value = lunElem.childNodes[0] ? lunElem.childNodes[0].nodeValue : undefined;
-        if (targetElem)
-            capability.target._value = targetElem.childNodes[0] ? targetElem.childNodes[0].nodeValue : undefined;
-    } else if (capability.type == 'scsi_host') {
-        capability.host = {};
-        capability.uniqueId = {};
-
-        const hostElem = capabilityElem.getElementsByTagName("host")[0];
-        const unique_idElem = capabilityElem.getElementsByTagName("unique_id")[0];
-
-        if (hostElem)
-            capability.host._value = hostElem.childNodes[0] ? hostElem.childNodes[0].nodeValue : undefined;
-        if (unique_idElem)
-            capability.uniqueId._value = unique_idElem.childNodes[0] ? unique_idElem.childNodes[0].nodeValue : undefined;
-    } else if (capability.type == 'mdev') {
-        const uuidElem = capabilityElem.getElementsByTagName("uuid")[0];
-
-        if (uuidElem)
-            capability.uuid = uuidElem.childNodes[0] ? uuidElem.childNodes[0].nodeValue : undefined;
     }
 
     return { name, path, parent: parentName, capability };

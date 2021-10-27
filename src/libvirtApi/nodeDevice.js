@@ -40,7 +40,12 @@ export function nodeDeviceGet({
     let deviceXmlObject;
     return call(connectionName, objPath, 'org.libvirt.NodeDevice', 'GetXMLDesc', [0], { timeout, type: 'u' })
             .then(deviceXml => {
-                deviceXmlObject = parseNodeDeviceDumpxml(deviceXml);
+                try {
+                    deviceXmlObject = parseNodeDeviceDumpxml(deviceXml);
+                } catch (error) {
+                    console.warn("Failed to parse node device:", deviceXml);
+                    return Promise.resolve();
+                }
                 deviceXmlObject.connectionName = connectionName;
 
                 if (deviceXmlObject.path && ["pci", "usb_device"].includes(deviceXmlObject.capability.type)) {
