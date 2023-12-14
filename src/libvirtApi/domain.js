@@ -74,7 +74,7 @@ import { CLOUD_IMAGE, DOWNLOAD_AN_OS, LOCAL_INSTALL_MEDIA_SOURCE, needsRHToken }
 
 export const domainCanConsole = (vmState) => vmState == 'running';
 export const domainCanDelete = (vmState, vmId) => true;
-export const domainCanInstall = (vmState, hasInstallPhase) => vmState != 'running' && hasInstallPhase;
+export const domainCanInstall = (vmState, hasInstallPhase) => vmState == 'shut off' && hasInstallPhase;
 export const domainCanReset = (vmState) => vmState == 'running' || vmState == 'idle' || vmState == 'paused';
 export const domainCanRun = (vmState, hasInstallPhase) => !hasInstallPhase && vmState == 'shut off';
 export const domainCanSendNMI = (vmState) => domainCanReset(vmState);
