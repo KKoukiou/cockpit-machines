@@ -1,3 +1,4 @@
+packit_instances: ["stg"]
 upstream_project_url: https://github.com/cockpit-project/cockpit-machines
 # enable notification of failed downstream jobs as issues
 issue_repository: https://github.com/cockpit-project/cockpit-machines
