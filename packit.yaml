@@ -1,11 +1,23 @@
 upstream_project_url: https://github.com/cockpit-project/cockpit-machines
 # enable notification of failed downstream jobs as issues
 issue_repository: https://github.com/cockpit-project/cockpit-machines
-specfile_path: cockpit-machines.spec
 upstream_package_name: cockpit-machines
 downstream_package_name: cockpit-machines
 # use the nicely formatted release description from our upstream release, instead of git shortlog
 copy_upstream_release_description: true
+
+packages:
+  cockpit-machines-fedora:
+    specfile_path: cockpit-machines.spec
+    actions:
+      post-upstream-clone:
+        - wget https://src.fedoraproject.org/rpms/cockpit-machines/raw/rawhide/f/cockpit-machines.spec
+  cockpit-machines-centos:
+    specfile_path: cockpit-machines.spec
+    pkg_tool: centpkg
+    actions:
+      post-upstream-clone:
+        - wget https://gitlab.com/redhat/centos-stream/rpms/cockpit-machines/-/raw/c9s/cockpit-machines.spec
 
 srpm_build_deps:
 - npm
@@ -49,10 +61,17 @@ jobs:
 
   - job: propose_downstream
     trigger: release
+    packages: [cockpit-machines-fedora]
     dist_git_branches:
       - fedora-development
       - fedora-39
       - fedora-40
+
+  - job: propose_downstream
+    trigger: release
+    packages: [cockpit-machines-centos]
+    dist_git_branches:
+      - c9s
 
   - job: koji_build
     trigger: commit
