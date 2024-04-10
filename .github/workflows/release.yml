@@ -49,20 +49,3 @@ jobs:
         run: |
             git config user.name "GitHub Workflow"
             git config user.email "cockpituous@cockpit-project.org"
-
-      - name: Tag node-cache
-        run: |
-          set -eux
-          # this is a shared repo, prefix with project name
-          TAG="${GITHUB_REPOSITORY#*/}-$(basename $GITHUB_REF)"
-          make tools/node-modules
-          tools/node-modules checkout
-          cd node_modules
-          git tag "$TAG"
-          git remote add cache "ssh://git@github.com/${GITHUB_REPOSITORY%/*}/node-cache"
-          eval $(ssh-agent)
-          ssh-add - <<< '${{ secrets.DEPLOY_KEY }}'
-          # make this idempotent: delete an existing tag
-          git push cache :"$TAG" || true
-          git push cache tag "$TAG"
-          ssh-add -D
